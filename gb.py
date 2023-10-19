@@ -2,8 +2,11 @@
 
 from simple_term_menu import TerminalMenu
 from git import Repo
+from git.cmd import Git
+from git.exc import GitCommandError
 import os
 from pathlib import Path
+import re
 
 def get_branches():
     repo = Repo(".")
@@ -28,6 +31,16 @@ def save_history(history: list):
             f.write(f"{line}\n")
 
 
+def switch_branch(branch_name: str):
+    git = Git('.')
+    try:
+        git.checkout(branch_name)
+    except GitCommandError as e:
+        regex = re.compile("'(.*)'", flags=re.S|re.M)
+        err_text = regex.search(e.stderr)
+        print(err_text.group(1))
+
+
 def main():
     all_history = read_history()
     branches = dict.fromkeys(get_branches())
@@ -42,12 +55,11 @@ def main():
 
     terminal_menu = TerminalMenu(options)
     menu_entry_index = terminal_menu.show()
-    if menu_entry_index:
+    if menu_entry_index is not None:
         selected_branch = options[menu_entry_index]
-        print(f"You have selected: {selected_branch}")
         all_history = [selected_branch] + list(filter(lambda x: x != selected_branch, all_history))
         save_history(all_history)
-
+        switch_branch(selected_branch)
 
 if __name__ == "__main__":
     main()
